@@ -100,9 +100,9 @@ source /etc/profile
 ./waf --run "scratch/webrtc-static"  
 ```
 Results:  
-![avatar](https://github.com/SoonyangZhang/webrtc-gcc-ns3/blob/master/results/gcc-rate.png)  
+![avatar](https://github.com/SoonyangZhang/webrtc-gcc-ns3/blob/main/results/gcc-rate.png)  
 
 Reference:  
-[1] [build webrtc with gcc](https://mediasoup.org/documentation/v3/libmediasoupclient/installation/)
-[2] [the blog in chines to configure this code on ns3]https://blog.csdn.net/u010643777/article/details/107237315  
+[1] [build webrtc with gcc](https://mediasoup.org/documentation/v3/libmediasoupclient/installation/)   
+[2] [the blog in chines to configure this code on ns3](https://blog.csdn.net/u010643777/article/details/107237315)   
 

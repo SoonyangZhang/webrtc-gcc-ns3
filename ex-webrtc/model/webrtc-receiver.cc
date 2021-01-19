@@ -38,7 +38,6 @@ void WebrtcReceiver::Bind(uint16_t port){
         NS_ASSERT (res == 0);
     }
     m_socket->SetRecvCallback (MakeCallback(&WebrtcReceiver::RecvPacket,this));
-    m_context=GetNode()->GetId ();
     NotifyRouteChange();    
 }
 bool WebrtcReceiver::SendRtp(const uint8_t* packet,
@@ -60,7 +59,7 @@ bool WebrtcReceiver::SendRtp(const uint8_t* packet,
         m_rtpQ.push_back(buffer);
     }
     if(m_running)
-    Simulator::ScheduleWithContext(m_context, Time (0),MakeEvent(&WebrtcReceiver::DeliveryPacket, this));         
+    Simulator::ScheduleWithContext(GetNode()->GetId(), Time (0),MakeEvent(&WebrtcReceiver::DeliveryPacket, this));         
     return true;               
 }
 bool WebrtcReceiver::SendRtcp(const uint8_t* packet, size_t length){
@@ -71,7 +70,7 @@ bool WebrtcReceiver::SendRtcp(const uint8_t* packet, size_t length){
         m_rtcpQ.push_back(buffer);        
     }
     if(m_running)
-    Simulator::ScheduleWithContext(m_context, Time (0),MakeEvent(&WebrtcReceiver::DeliveryPacket, this)); 
+    Simulator::ScheduleWithContext(GetNode()->GetId(), Time (0),MakeEvent(&WebrtcReceiver::DeliveryPacket, this)); 
     return true;
 }
 void WebrtcReceiver::StartApplication(){
@@ -79,6 +78,11 @@ void WebrtcReceiver::StartApplication(){
 }
 void WebrtcReceiver::StopApplication(){
     m_running=false;
+    int64_t average=0;
+    if(m_owdSamples>0&&!m_traceOwdCb.IsNull()){
+        average=m_sumOwd/m_owdSamples;
+        m_traceOwdCb(0,(uint32_t)average);
+    }
 }
 void WebrtcReceiver::NotifyRouteChange(){
   rtc::NetworkRoute route;
@@ -127,7 +131,11 @@ void WebrtcReceiver::RecvPacket(Ptr<Socket> socket){
     Address remoteAddr;
     auto packet = socket->RecvFrom (remoteAddr);
     uint32_t now=Simulator::Now().GetMilliSeconds();
-    
+    WebrtcTag tag;
+    packet->RemovePacketTag (tag);
+    uint32_t owd=now-tag.GetTime();
+    m_sumOwd+=owd;
+    m_owdSamples++;
     bool output=false;
     if(m_OwdTraceTime==0){
         output=true;
@@ -140,9 +148,6 @@ void WebrtcReceiver::RecvPacket(Ptr<Socket> socket){
         }
     }
     if(output&&!m_traceOwdCb.IsNull()){
-        WebrtcTag tag;
-        packet->RemovePacketTag (tag);
-        uint32_t owd=now-tag.GetTime();
         m_traceOwdCb(now,owd);
     }
     if(!m_knowPeer){

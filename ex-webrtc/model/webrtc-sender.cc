@@ -35,7 +35,6 @@ void WebrtcSender::Bind(uint16_t port){
         NS_ASSERT (res == 0);
     }
     m_socket->SetRecvCallback (MakeCallback(&WebrtcSender::RecvPacket,this));    
-    m_context=GetNode()->GetId ();
     NotifyRouteChange();    
 }
 void WebrtcSender::ConfigurePeer(Ipv4Address addr,uint16_t port){
@@ -84,7 +83,7 @@ bool WebrtcSender::SendRtp(const uint8_t* packet,
         m_traceBw(now,bw);
     }
     if(m_running)
-    Simulator::ScheduleWithContext(m_context, Time (0),MakeEvent(&WebrtcSender::DeliveryPacket, this));     
+    Simulator::ScheduleWithContext(GetNode()->GetId(), Time (0),MakeEvent(&WebrtcSender::DeliveryPacket, this));     
     return true;               
 }
 bool WebrtcSender::SendRtcp(const uint8_t* packet, size_t length){
@@ -95,7 +94,7 @@ bool WebrtcSender::SendRtcp(const uint8_t* packet, size_t length){
         m_rtcpQ.push_back(buffer);        
     }
     if(m_running)
-    Simulator::ScheduleWithContext(m_context, Time (0),MakeEvent(&WebrtcSender::DeliveryPacket, this)); 
+    Simulator::ScheduleWithContext(GetNode()->GetId(), Time (0),MakeEvent(&WebrtcSender::DeliveryPacket, this)); 
     return true;
 }
 void WebrtcSender::StartApplication(){

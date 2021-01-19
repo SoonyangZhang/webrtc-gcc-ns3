@@ -13,9 +13,13 @@
 #include "test/scenario/video_stream2.h"
 #include "test/scenario/transport_base.h"
 namespace ns3{
+enum TimeConollerType{
+    EMU_CONTROLLER,
+    SIMU_CONTROLLER,
+};
 class WebrtcSessionManager{
 public:
-    WebrtcSessionManager();
+    WebrtcSessionManager(TimeConollerType type=TimeConollerType::EMU_CONTROLLER);
     ~WebrtcSessionManager();
     void SetFrameHxW(uint32_t height,uint32_t width);
     void SetRate(uint32_t min_rate,uint32_t start_rate,uint32_t max_rate);

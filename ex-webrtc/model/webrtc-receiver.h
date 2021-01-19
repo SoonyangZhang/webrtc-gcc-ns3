@@ -50,9 +50,10 @@ private:
     std::deque<rtc::CopyOnWriteBuffer> m_rtpQ;
     AtomicLock m_rtcpLock;
     std::deque<rtc::CopyOnWriteBuffer> m_rtcpQ;
-    uint32_t m_packetOverhead{0};
-    uint32_t m_context{0};
-    uint32_t m_OwdTraceTime=0;
     TraceOwd m_traceOwdCb;
+    uint32_t m_packetOverhead{0};
+    uint32_t m_OwdTraceTime=0;
+    uint64_t m_sumOwd=0;
+    uint32_t m_owdSamples=0;
 };    
 }

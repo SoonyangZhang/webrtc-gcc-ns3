@@ -5,20 +5,20 @@
 #include <memory>
 #include <unistd.h>
 #include <iostream>
-#include "webrtc-util.h"
+
 #include "test/scenario/scenario_config.h"
 #include "test/scenario/video_frame_matcher.h"
-
 #include "absl/strings/match.h"
 #include "absl/types/optional.h"
 #include "api/transport/field_trial_based_config.h"
+#include "webrtc-emu-controller.h"
 namespace ns3{
 namespace{
 const uint32_t kInitialBitrateKbps = 60;
 const webrtc::DataRate kInitialBitrate = webrtc::DataRate::KilobitsPerSec(kInitialBitrateKbps);
 const float kDefaultPacingRate = 2.5f;    
 }
-WebrtcSessionManager::WebrtcSessionManager(){
+WebrtcSessionManager::WebrtcSessionManager(TimeConollerType type){
     call_client_config_.transport.rates.min_rate=kInitialBitrate;
     call_client_config_.transport.rates.max_rate=5*kInitialBitrate;
     call_client_config_.transport.rates.start_rate=kInitialBitrate;
@@ -26,7 +26,7 @@ WebrtcSessionManager::WebrtcSessionManager(){
     config.feedback_only = true;
     call_client_config_.transport.cc_factory=
     new webrtc::GoogCcNetworkControllerFactory(std::move(config));
-    time_controller_.reset(new webrtc::MyRealTimeController());
+    time_controller_.reset(new webrtc::EmulationTimeController());
 }
 WebrtcSessionManager::~WebrtcSessionManager(){
     webrtc::NetworkControllerFactoryInterface *cc_factory

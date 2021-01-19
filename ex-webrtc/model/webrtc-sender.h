@@ -52,6 +52,5 @@ private:
     TraceBandwidth m_traceBw;
     uint32_t m_packetOverhead{0};
     uint32_t m_initial_time{0};
-    uint32_t m_context{0};
 };   
 }
