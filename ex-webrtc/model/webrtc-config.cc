@@ -12,21 +12,27 @@
 #include "absl/types/optional.h"
 #include "api/transport/field_trial_based_config.h"
 #include "webrtc-emu-controller.h"
+#include "webrtc-simu-controller.h"
 namespace ns3{
 namespace{
 const uint32_t kInitialBitrateKbps = 60;
 const webrtc::DataRate kInitialBitrate = webrtc::DataRate::KilobitsPerSec(kInitialBitrateKbps);
 const float kDefaultPacingRate = 2.5f;    
 }
-WebrtcSessionManager::WebrtcSessionManager(TimeConollerType type){
-    call_client_config_.transport.rates.min_rate=kInitialBitrate;
-    call_client_config_.transport.rates.max_rate=5*kInitialBitrate;
-    call_client_config_.transport.rates.start_rate=kInitialBitrate;
+WebrtcSessionManager::WebrtcSessionManager(webrtc::TimeController *controller,
+                        uint32_t min_rate,uint32_t start_rate,uint32_t max_rate,
+                        uint32_t height,uint32_t width):time_controller_(controller){
+    call_client_config_.transport.rates.min_rate=webrtc::DataRate::KilobitsPerSec(min_rate);
+    call_client_config_.transport.rates.start_rate=webrtc::DataRate::KilobitsPerSec(start_rate);
+    call_client_config_.transport.rates.max_rate=webrtc::DataRate::KilobitsPerSec(max_rate);
+    
+    video_stream_config_.source.generator.height=height; 
+    video_stream_config_.source.generator.width=width;
+
     webrtc::GoogCcFactoryConfig config;
     config.feedback_only = true;
     call_client_config_.transport.cc_factory=
     new webrtc::GoogCcNetworkControllerFactory(std::move(config));
-    time_controller_.reset(new webrtc::EmulationTimeController());
 }
 WebrtcSessionManager::~WebrtcSessionManager(){
     webrtc::NetworkControllerFactoryInterface *cc_factory
@@ -49,8 +55,8 @@ WebrtcSessionManager::~WebrtcSessionManager(){
    video_streams_.clear();
 }
 void WebrtcSessionManager::CreateClients(){
-    sender_client_=new webrtc::test::CallClient(time_controller_.get(),nullptr,call_client_config_);
-    receiver_client_=new webrtc::test::CallClient(time_controller_.get(),nullptr,call_client_config_);
+    sender_client_=new webrtc::test::CallClient(time_controller_,nullptr,call_client_config_);
+    receiver_client_=new webrtc::test::CallClient(time_controller_,nullptr,call_client_config_);
 }
 void WebrtcSessionManager::RegisterSenderTransport(webrtc::test::TransportBase *transport,bool own){
     if(sender_client_){
@@ -86,15 +92,6 @@ void WebrtcSessionManager::Stop(){
   for (auto& stream_pair : video_streams_)
     stream_pair->receive()->Stop(); 
 }
-void WebrtcSessionManager::SetFrameHxW(uint32_t height,uint32_t width){
-    video_stream_config_.source.generator.width=width;
-    video_stream_config_.source.generator.height=height;    
-}
-void WebrtcSessionManager::SetRate(uint32_t min_rate,uint32_t start_rate,uint32_t max_rate){
-    call_client_config_.transport.rates.min_rate=webrtc::DataRate::KilobitsPerSec(min_rate);
-    call_client_config_.transport.rates.max_rate=webrtc::DataRate::KilobitsPerSec(max_rate);
-    call_client_config_.transport.rates.start_rate=webrtc::DataRate::KilobitsPerSec(start_rate);
-}    
 void test_match_active(){
     webrtc::test::VideoStreamConfig config=webrtc::test::VideoStreamConfig();
     config.source.generator.width=1280;
@@ -113,6 +110,14 @@ void test_field_trial(){
     bool ret=IsEnabled(&trial,"WebRTC-TaskQueuePacer/Enabled");
     if(ret){
         std::cout<<"what the fuck"<<std::endl;
+    }
+    
+}
+webrtc::TimeController *CreateTimeController(TimeConollerType type,int64_t start_us,uint64_t stop_us){
+    if(TimeConollerType::SIMU_CONTROLLER==type){
+        return new webrtc::SimulationTimeController(start_us,stop_us);
+    }else{
+        return new webrtc::EmulationTimeController();
     }
     
 }

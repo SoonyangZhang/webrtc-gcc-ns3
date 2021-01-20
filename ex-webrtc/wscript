@@ -5,12 +5,16 @@ def build(bld):
     module.env.append_value("LIB", ["webrtc","dl"])
     module.env.append_value('CXXFLAGS', '-DWEBRTC_POSIX')
     module.source = [
+    'model/simulated-process-thread.cc',
+    'model/simulated-task-queue.cc',
+    'model/simulated-thread.cc',
     'model/webrtc-clock.cc',
     'model/webrtc-config.cc',
     'model/webrtc-emu-controller.cc',
     'model/webrtclog.cc',
     'model/webrtc-receiver.cc',
-    'model/webrtc-sender.cc', 
+    'model/webrtc-sender.cc',
+    'model/webrtc-simu-controller.cc',
     'model/webrtc-tag.cc',
     'model/webrtc-trace.cc',    
     'api/test/create_frame_generator.cc',

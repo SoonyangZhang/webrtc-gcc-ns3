@@ -99,10 +99,22 @@ sudo su
 source /etc/profile   
 ./waf --run "scratch/webrtc-static"  
 ```
+7 the code can work in both simulation and emulation mode. In simulation mode, the time comes from ns3, while the time is got from os in emulation mode.  
+```
+int main(int argc, char *argv[]){
+    LogComponentEnable("WebrtcSender",LOG_LEVEL_ALL);
+    LogComponentEnable("WebrtcReceiver",LOG_LEVEL_ALL);
+    TimeConollerType controller_type=TimeConollerType::EMU_CONTROLLER;
+    //TimeConollerType controller_type=TimeConollerType::SIMU_CONTROLLER;
+}
+```
 Results:  
-![avatar](https://github.com/SoonyangZhang/webrtc-gcc-ns3/blob/main/results/gcc-rate.png)  
-
+In simulation mode:  
+![avatar](https://github.com/SoonyangZhang/webrtc-gcc-ns3/blob/main/results/gcc-simu-bw.png)  
+In Emulation mode:  
+![avatar](https://github.com/SoonyangZhang/webrtc-gcc-ns3/blob/main/results/gcc-emu-bw.png)  
+You could clearly notice the difference.  
 Reference:  
 [1] [build webrtc with gcc](https://mediasoup.org/documentation/v3/libmediasoupclient/installation/)   
-[2] [the blog in chines to configure this code on ns3](https://blog.csdn.net/u010643777/article/details/107237315)   
+[2] [the blog in chinese to configure this code on ns3](https://blog.csdn.net/u010643777/article/details/107237315)   
 

@@ -49,6 +49,7 @@ private:
     AtomicLock m_rtcpLock;
     std::deque<rtc::CopyOnWriteBuffer> m_rtcpQ;
     int64_t m_lastTraceTime{0};
+    uint32_t m_context=0;
     TraceBandwidth m_traceBw;
     uint32_t m_packetOverhead{0};
     uint32_t m_initial_time{0};

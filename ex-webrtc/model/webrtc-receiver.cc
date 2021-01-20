@@ -38,6 +38,7 @@ void WebrtcReceiver::Bind(uint16_t port){
         NS_ASSERT (res == 0);
     }
     m_socket->SetRecvCallback (MakeCallback(&WebrtcReceiver::RecvPacket,this));
+    m_context = GetNode()->GetId ();
     NotifyRouteChange();    
 }
 bool WebrtcReceiver::SendRtp(const uint8_t* packet,
@@ -59,7 +60,7 @@ bool WebrtcReceiver::SendRtp(const uint8_t* packet,
         m_rtpQ.push_back(buffer);
     }
     if(m_running)
-    Simulator::ScheduleWithContext(GetNode()->GetId(), Time (0),MakeEvent(&WebrtcReceiver::DeliveryPacket, this));         
+    Simulator::ScheduleWithContext(m_context, Time (0),MakeEvent(&WebrtcReceiver::DeliveryPacket, this));         
     return true;               
 }
 bool WebrtcReceiver::SendRtcp(const uint8_t* packet, size_t length){
@@ -70,7 +71,7 @@ bool WebrtcReceiver::SendRtcp(const uint8_t* packet, size_t length){
         m_rtcpQ.push_back(buffer);        
     }
     if(m_running)
-    Simulator::ScheduleWithContext(GetNode()->GetId(), Time (0),MakeEvent(&WebrtcReceiver::DeliveryPacket, this)); 
+    Simulator::ScheduleWithContext(m_context, Time (0),MakeEvent(&WebrtcReceiver::DeliveryPacket, this)); 
     return true;
 }
 void WebrtcReceiver::StartApplication(){

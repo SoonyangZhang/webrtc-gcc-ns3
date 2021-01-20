@@ -62,8 +62,8 @@ static void InstallWebrtcApplication( Ptr<Node> sender,
                         Ptr<Node> receiver,
                         uint16_t send_port,
                         uint16_t recv_port,
-                        float startTime,
-                        float stopTime,
+                        int64_t start_ms,
+                        int64_t stop_ms,
                         WebrtcSessionManager *manager,
                         WebrtcTrace *trace=nullptr)
 {
@@ -87,20 +87,32 @@ static void InstallWebrtcApplication( Ptr<Node> sender,
             recvApp->SetOwdTraceFuc(MakeCallback(&WebrtcTrace::OnOwd,trace));
         }
     }
-    sendApp->SetStartTime (Seconds (startTime));
-    sendApp->SetStopTime (Seconds (stopTime));
-    recvApp->SetStartTime (Seconds (startTime));
-    recvApp->SetStopTime (Seconds (stopTime));	
+    sendApp->SetStartTime (MilliSeconds(start_ms));
+    sendApp->SetStopTime (MilliSeconds(stop_ms));
+    recvApp->SetStartTime (MilliSeconds(start_ms));
+    recvApp->SetStopTime (MilliSeconds(stop_ms));
 }
-static float simDuration=100;
-float appStart=0.1;
-float appStop=simDuration-1;
+static int64_t simStopMilli=100000;
+int64_t appStartMills=1;
+float appStopMills=simStopMilli-1;
+uint64_t kMillisPerSecond=1000;
+uint64_t kMicroPerMillis=1000;
+std::unique_ptr<WebrtcSessionManager> CreateWebrtcSessionManager(webrtc::TimeController *controller,
+uint32_t max_rate=1000,uint32_t min_rate=300,uint32_t start_rate=500,uint32_t h=720,uint32_t w=1280){
+    std::unique_ptr<WebrtcSessionManager> webrtc_manaager(new WebrtcSessionManager(controller,min_rate,start_rate,max_rate,h,w));
+    webrtc_manaager->CreateClients();
+    return webrtc_manaager;
+}
 int main(int argc, char *argv[]){
     LogComponentEnable("WebrtcSender",LOG_LEVEL_ALL);
     LogComponentEnable("WebrtcReceiver",LOG_LEVEL_ALL);
-    GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));
-    //init_webrtc_log();
-    //set_test_clock_webrtc();
+    TimeConollerType controller_type=TimeConollerType::EMU_CONTROLLER;
+    //TimeConollerType controller_type=TimeConollerType::SIMU_CONTROLLER;
+    if(TimeConollerType::EMU_CONTROLLER==controller_type){
+        GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));        
+    }else if(TimeConollerType::SIMU_CONTROLLER==controller_type){
+        webrtc_register_clock();
+    }
 	uint64_t linkBw   = TOPO_DEFAULT_BW;
     uint32_t msDelay  = TOPO_DEFAULT_PDELAY;
     uint32_t msQDelay = TOPO_DEFAULT_QDELAY;
@@ -126,35 +138,28 @@ int main(int argc, char *argv[]){
         Config::SetDefault ("ns3::BurstErrorModel::BurstSize", StringValue ("ns3::UniformRandomVariable[Min=1|Max=3]"));
         random_loss=true;
     }
-    uint16_t sendPort=5432;
-    uint16_t recvPort=5000;
-    
-    std::unique_ptr<WebrtcSessionManager> webrtc_manaager(new WebrtcSessionManager()); 
-    uint32_t min_rate=300;
-    uint32_t start_rate=500;
+    int64_t webrtc_start_us=appStartMills*kMicroPerMillis+1;
+    int64_t webrtc_stop_us=appStopMills*kMicroPerMillis;
+    webrtc::TimeController* time_controller=CreateTimeController(controller_type,webrtc_start_us,webrtc_stop_us);
     uint32_t max_rate=linkBw/1000;
-    webrtc_manaager->SetFrameHxW(720,1280);
-    webrtc_manaager->SetRate(min_rate,start_rate,max_rate);
-    webrtc_manaager->CreateClients();
-
-    std::unique_ptr<WebrtcSessionManager> webrtc_manaager2(new WebrtcSessionManager());
-    std::unique_ptr<WebrtcSessionManager> webrtc_manaager3(new WebrtcSessionManager());
-    webrtc_manaager2->SetFrameHxW(720,1280);
-    webrtc_manaager2->SetRate(min_rate,start_rate,max_rate);
-    webrtc_manaager2->CreateClients();
-
-    webrtc_manaager3->SetFrameHxW(720,1280);
-    webrtc_manaager3->SetRate(min_rate,start_rate,max_rate);
-    webrtc_manaager3->CreateClients();
+    std::unique_ptr<WebrtcSessionManager> webrtc_manaager1=std::move(CreateWebrtcSessionManager(
+    time_controller,max_rate)); 
+    std::unique_ptr<WebrtcSessionManager> webrtc_manaager2=std::move(CreateWebrtcSessionManager(
+    time_controller,max_rate));
+    std::unique_ptr<WebrtcSessionManager> webrtc_manaager3=std::move(CreateWebrtcSessionManager(
+    time_controller,max_rate));
 
     NodeContainer nodes = BuildExampleTopo(linkBw, msDelay, msQDelay,random_loss);
+
+    uint16_t sendPort=5432;
+    uint16_t recvPort=5000;
     
     int test_pair=1;
     std::string log=instance+webrtc_log_com+std::to_string(test_pair);    
     WebrtcTrace trace1;
     trace1.Log(log,WebrtcTrace::E_WEBRTC_BW|WebrtcTrace::E_WEBRTC_OWD);
-    InstallWebrtcApplication(nodes.Get(0),nodes.Get(1),sendPort,recvPort,appStart,appStop,
-    webrtc_manaager.get(),&trace1);
+    InstallWebrtcApplication(nodes.Get(0),nodes.Get(1),sendPort,recvPort,appStartMills,appStopMills,
+    webrtc_manaager1.get(),&trace1);
     sendPort++;
     recvPort++;
     test_pair++;
@@ -163,7 +168,7 @@ int main(int argc, char *argv[]){
     log=instance+webrtc_log_com+std::to_string(test_pair);    
     WebrtcTrace trace2;
     trace2.Log(log,WebrtcTrace::E_WEBRTC_BW);
-    InstallWebrtcApplication(nodes.Get(0),nodes.Get(1),sendPort,recvPort,appStart+5,appStop,
+    InstallWebrtcApplication(nodes.Get(0),nodes.Get(1),sendPort,recvPort,appStartMills+5*kMillisPerSecond,appStopMills,
     webrtc_manaager2.get(),&trace2);
     sendPort++;
     recvPort++;
@@ -172,15 +177,19 @@ int main(int argc, char *argv[]){
     log=instance+webrtc_log_com+std::to_string(test_pair);    
     WebrtcTrace trace3;
     trace3.Log(log,WebrtcTrace::E_WEBRTC_BW);
-    InstallWebrtcApplication(nodes.Get(0),nodes.Get(1),sendPort,recvPort,appStart+10,appStop,
+    InstallWebrtcApplication(nodes.Get(0),nodes.Get(1),sendPort,recvPort,appStartMills+10*kMillisPerSecond,appStopMills,
     webrtc_manaager3.get(),&trace3);
     sendPort++;
     recvPort++;
     test_pair++;    
     
-    Simulator::Stop (Seconds(simDuration));
+    Simulator::Stop (MilliSeconds(simStopMilli));
     Simulator::Run ();
     Simulator::Destroy();
-    std::cout<<"out"<<std::endl;
+    if(time_controller){
+        delete time_controller;
+    }
+    std::cout<<"run out"<<std::endl;
+    exit(0);
     return 0;
 }
