@@ -1,5 +1,5 @@
 # webrtc-gcc-ns3
-test google congestion control on ns3.31  
+test google congestion control algorithm on ns3.31  
 ## Preparation 
 1 download webrtc m84.  
 ```
@@ -47,12 +47,12 @@ bool ModuleRtpRtcpImpl::TrySendPacket(RtpPacketToSend* packet,
 ```
 //third_party/webrtc/call/call.h  
 class Call {  
-virtual uint32_t last_bandwidth_bps(){return 0;}  
+    virtual uint32_t last_bandwidth_bps(){return 0;}  
 };  
 //third_party/webrtc/call/call.cc  
 namespace internal {  
 class Call{
-uint32_t last_bandwidth_bps() override {return last_bandwidth_bps_;}  
+    uint32_t last_bandwidth_bps() override {return last_bandwidth_bps_;}  
 }
 }  
 ```
@@ -85,8 +85,13 @@ opt.add_option('--cxx-standard',
                help=('Compile NS-3 with the given C++ standard'),
                type='string', default='-std=c++14', dest='cxx_standard')  
 ```
-3 put the folder ex-webrtc under ns-allinone-3.31/ns-3.31/src.  
-4 build ns3 with clang++  
+3 Change the warning flags in ns3 (ns-allinone-3.31/ns-3.31/waf-tools/cflags.h).  
+```
+self.warnings_flags = [['-Wall'], ['-Wno-unused-parameter'], ['-Wextra']]
+```
+The origin content can be seen [here](https://github.com/nsnam/ns-3-dev-git/blob/ns-3.31/waf-tools/cflags.py#L22).  
+4 Put the folder ex-webrtc under ns-allinone-3.31/ns-3.31/src.  
+5 Build ns3 with clang++  
 ```
 cd ns-allinone-3.31/ns-3.31  
 source /etc/profile  
@@ -94,7 +99,7 @@ CXX="clang++" ./waf configure
 ./waf build  
 ```
 ## Run example:
-1 put the file webrtc-static.cc under ns-allinone-3.31/ns-3.31/scratch.  
+1 Put the file webrtc-static.cc under ns-allinone-3.31/ns-3.31/scratch/.  
 2 Rebuild ns3  
 ```
 cd ns-allinone-3.31/ns-3.31  
@@ -103,25 +108,25 @@ CXX="clang++" ./waf configure
 ./waf build  
 
 ```
-3 create a folder named traces under ns-allinone-3.31/ns-3.31/. The traced data can be found there.  
-4 Run the example in simulation mode:
+3 Create a folder named traces under ns-allinone-3.31/ns-3.31/. The traced data can be found there.  
+4 Run the example in simulation mode (ns3 event time):
 ```
 ./waf run "scratch/webrtc-static --m=simu"  
 ```
-5 the code can work in both simulation and emulation mode. In simulation mode:
+5 The code can work in simulation or emulation mode. In emulaiton mode (real clock):  
 ```
 ./waf run "scratch/webrtc-static --m=emu"  
 ```
 The code here is used by [gym](https://github.com/OpenNetLab/gym) to build reinforce learning based congestion controller.  
 ## extra help
-If can not get the code sucessfully running, let me know and I will upload webrtc source code.    
-Results:  
+If you cannot get the code sucessfully running, let me know and I will upload webrtc source code.    
+## Results:  
 In simulation mode:  
 ![avatar](https://github.com/SoonyangZhang/webrtc-gcc-ns3/blob/main/results/gcc-simu-bw.png)  
 In Emulation mode:  
 ![avatar](https://github.com/SoonyangZhang/webrtc-gcc-ns3/blob/main/results/gcc-emu-bw.png)  
-You could clearly notice the difference.  
-Reference:  
+The difference is clear.  
+## Reference:  
 [1] [build webrtc with gcc](https://mediasoup.org/documentation/v3/libmediasoupclient/installation/)   
 [2] [the blog in chinese to configure this code on ns3](https://blog.csdn.net/u010643777/article/details/107237315)   
-[3] [Build reinforce learning congestion control controller for webrtc](https://github.com/OpenNetLab/gym)
+[3] [gym-Build reinforce learning congestion control controller for webrtc](https://github.com/OpenNetLab/gym)
