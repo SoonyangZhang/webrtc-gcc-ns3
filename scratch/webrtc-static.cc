@@ -106,22 +106,27 @@ uint32_t max_rate=1000,uint32_t min_rate=300,uint32_t start_rate=500,uint32_t h=
 int main(int argc, char *argv[]){
     LogComponentEnable("WebrtcSender",LOG_LEVEL_ALL);
     LogComponentEnable("WebrtcReceiver",LOG_LEVEL_ALL);
-    TimeConollerType controller_type=TimeConollerType::EMU_CONTROLLER;
-    //TimeConollerType controller_type=TimeConollerType::SIMU_CONTROLLER;
-    if(TimeConollerType::EMU_CONTROLLER==controller_type){
-        GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl"));        
-    }else if(TimeConollerType::SIMU_CONTROLLER==controller_type){
-        webrtc_register_clock();
-    }
-	uint64_t linkBw   = TOPO_DEFAULT_BW;
-    uint32_t msDelay  = TOPO_DEFAULT_PDELAY;
-    uint32_t msQDelay = TOPO_DEFAULT_QDELAY;
-    CommandLine cmd;
+    std::string mode("simu");
     std::string instance=std::string("1");
     std::string loss_str("0");
+    CommandLine cmd;
     cmd.AddValue ("it", "instacne", instance);
-	cmd.AddValue ("lo", "loss",loss_str);
+    cmd.AddValue ("lo", "loss",loss_str);
+    cmd.AddValue("m","mode",mode);
     cmd.Parse (argc, argv);
+    TimeConollerType controller_type=TimeConollerType::SIMU_CONTROLLER;
+    if (0==mode.compare("simu")){
+        webrtc_register_clock();
+    }else if(0==mode.compare("emu")){
+        controller_type=TimeConollerType::EMU_CONTROLLER;
+        GlobalValue::Bind ("SimulatorImplementationType", StringValue ("ns3::RealtimeSimulatorImpl")); 
+    }else{
+        return -1;
+    }
+    uint64_t linkBw   = TOPO_DEFAULT_BW;
+    uint32_t msDelay  = TOPO_DEFAULT_PDELAY;
+    uint32_t msQDelay = TOPO_DEFAULT_QDELAY;
+
     int loss_integer=std::stoi(loss_str);
     double loss_rate=loss_integer*1.0/1000;
     std::string webrtc_log_com;
@@ -142,12 +147,12 @@ int main(int argc, char *argv[]){
     int64_t webrtc_stop_us=appStopMills*kMicroPerMillis;
     webrtc::TimeController* time_controller=CreateTimeController(controller_type,webrtc_start_us,webrtc_stop_us);
     uint32_t max_rate=linkBw/1000;
-    std::unique_ptr<WebrtcSessionManager> webrtc_manaager1=std::move(CreateWebrtcSessionManager(
-    time_controller,max_rate)); 
-    std::unique_ptr<WebrtcSessionManager> webrtc_manaager2=std::move(CreateWebrtcSessionManager(
-    time_controller,max_rate));
-    std::unique_ptr<WebrtcSessionManager> webrtc_manaager3=std::move(CreateWebrtcSessionManager(
-    time_controller,max_rate));
+    std::unique_ptr<WebrtcSessionManager> webrtc_manaager1=CreateWebrtcSessionManager(
+    time_controller,max_rate); 
+    std::unique_ptr<WebrtcSessionManager> webrtc_manaager2=CreateWebrtcSessionManager(
+    time_controller,max_rate);
+    std::unique_ptr<WebrtcSessionManager> webrtc_manaager3=CreateWebrtcSessionManager(
+    time_controller,max_rate);
 
     NodeContainer nodes = BuildExampleTopo(linkBw, msDelay, msQDelay,random_loss);
 

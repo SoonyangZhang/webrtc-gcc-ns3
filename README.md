@@ -1,6 +1,6 @@
 # webrtc-gcc-ns3
 test google congestion control on ns3.31  
-## build webrtc
+## Preparation 
 1 download webrtc m84.  
 ```
 mkdir webrtc-checkout  
@@ -15,23 +15,22 @@ gclient sync
 ```
 #define LIBYUV_LEGACY_TYPES  
 ```
-3 build it with GCC.  
-```
-gn gen out/m84 --args='is_debug=false is_component_build=false is_clang=false rtc_include_tests=false rtc_use_h264=true rtc_enable_protobuf=false use_rtti=true use_custom_libcxx=false treat_warnings_as_errors=false use_ozone=true'   
-```
-4 Add two files to rtc_base library(BUILD.gn):  
+3 Add two files to rtc_base library(BUILD.gn):  
 ```
 rtc_library("rtc_base") {
   sources = [
+    ...
     "memory_stream.cc",
     "memory_stream.h",
     "memory_usage.cc",
-    "memory_usage.h",]
+    "memory_usage.h",
+    ....
+    ]
 }
 ```
-And Remove them out of the original library(rtc_library("rtc_base_tests_utils")).  
-I dont want to enable the build flag rtc_include_tests.  
-delete code in webrtc:  
+Remove them out of the original library(rtc_library("rtc_base_tests_utils")).  
+The build flag rtc_include_tests is diabled, or else there will be errors when compiling.  
+4 Delete code in webrtc:  
 ```
 //third_party/webrtc/modules/rtp_rtcp/source/rtp_rtcp_impl.cc   
 bool ModuleRtpRtcpImpl::TrySendPacket(RtpPacketToSend* packet,  
@@ -57,57 +56,65 @@ uint32_t last_bandwidth_bps() override {return last_bandwidth_bps_;}
 }
 }  
 ```
-6  build:  
+6  webrtc is built with clang. [Get clang installed first](https://www.jianshu.com/p/3c7eae5c0c68).   
+## Build webrtc  
+1 first step:    
+```
+gn gen out/m84 --args='is_debug=false is_component_build=false is_clang=true rtc_include_tests=false rtc_use_h264=true rtc_enable_protobuf=false use_rtti=true use_custom_libcxx=false treat_warnings_as_errors=false use_ozone=true'   
+```
+2 second step:  
 ```
 ninja -C out/m84  
 ```
-7 add external header path to CPLUS_INCLUDE_PATH.  
-gedit source /etc/profile  
+## Build ns3.31
+1 Add environment variable   
 ```
-//add  header path
-export WEBRTC_INC=/home/zsy/webrtc/src  
-export ABSL_INC=/home/zsy/webrtc/src/third_party/abseil-cpp  
-export CPLUS_INCLUDE_PATH=CPLUS_INCLUDE_PATH:$WEBRTC_INC:$ABSL_INC  
+sudo gedit source /etc/profile   
+export WEBRTC_SRC_DIR=/xx/xx/xx/webrtc/src   
 ```
-8 The path (/home/zsy/webrtc/) is where I put webrtc source code.  
-## the ns3 part.
-1 Enable c++14 build flag (ns-allinone-3.31/ns-3.31/wscript).  
+WEBRTC_SRC_DIR is the path where you put webrtc source code.  
+The reason for this can be found in ex-webrtc/wscript.. 
+```
+webrtc_code_path = os.environ['WEBRTC_SRC_DIR']  
+webrtc_lib_path = os.path.join(webrtc_code_path, 'out', 'm84', 'obj')  
+webrtc_absl_path = os.path.join(webrtc_code_path, 'third_party', 'abseil-cpp')  
+```
+2 Enable c++14 build flag (ns-allinone-3.31/ns-3.31/wscript).  
 ```
 opt.add_option('--cxx-standard',
                help=('Compile NS-3 with the given C++ standard'),
                type='string', default='-std=c++14', dest='cxx_standard')  
 ```
-2 put the folder ex-webrtc under  ns3-allinone-3.xx/ns-3.xx/src.  
-3 put the file webrtc-static.cc under ns3-allinone-3.xx/ns-3.xx/scratch.
-4 The wscript in ex-webrtc give hint on the configuration on libwebrtc.  
+3 put the folder ex-webrtc under ns-allinone-3.31/ns-3.31/src.  
+4 build ns3 with clang++  
 ```
-module.env.append_value("CXXFLAGS", "-I/home/zsy/webrtc/src/")
-module.env.append_value("LINKFLAGS", ["-L/home/zsy/webrtc/src/out/m84/obj/"])
-```
-5 let the compiler find the header in external library:  
-```
-cd ns3-allinone-3.xx/  
-sudo su  
+cd ns-allinone-3.31/ns-3.31  
 source /etc/profile  
-./build.py  
-  
+CXX="clang++" ./waf configure  
+./waf build  
 ```
-6 test:
+## Run example:
+1 put the file webrtc-static.cc under ns-allinone-3.31/ns-3.31/scratch.  
+2 Rebuild ns3  
 ```
-cd ns3-allinone-3.xx/ns-3.xx/  
-sudo su  
-source /etc/profile   
-./waf --run "scratch/webrtc-static"  
+cd ns-allinone-3.31/ns-3.31  
+source /etc/profile  
+CXX="clang++" ./waf configure  
+./waf build  
+
 ```
-7 the code can work in both simulation and emulation mode. In simulation mode, the time comes from ns3, while the time is got from os in emulation mode.  
+3 create a folder named traces under ns-allinone-3.31/ns-3.31/. The traced data can be found there.  
+4 Run the example in simulation mode:
 ```
-int main(int argc, char *argv[]){
-    LogComponentEnable("WebrtcSender",LOG_LEVEL_ALL);
-    LogComponentEnable("WebrtcReceiver",LOG_LEVEL_ALL);
-    TimeConollerType controller_type=TimeConollerType::EMU_CONTROLLER;
-    //TimeConollerType controller_type=TimeConollerType::SIMU_CONTROLLER;
-}
+./waf run "scratch/webrtc-static --m=simu"  
 ```
+5 the code can work in both simulation and emulation mode. In simulation mode:
+```
+./waf run "scratch/webrtc-static --m=emu"  
+```
+The code here is used by [gym](https://github.com/OpenNetLab/gym) to build reinforce learning based congestion controller.  
+## extra help
+If can not get the code sucessfully running, let me know and I will upload webrtc source code.    
 Results:  
 In simulation mode:  
 ![avatar](https://github.com/SoonyangZhang/webrtc-gcc-ns3/blob/main/results/gcc-simu-bw.png)  
@@ -117,4 +124,4 @@ You could clearly notice the difference.
 Reference:  
 [1] [build webrtc with gcc](https://mediasoup.org/documentation/v3/libmediasoupclient/installation/)   
 [2] [the blog in chinese to configure this code on ns3](https://blog.csdn.net/u010643777/article/details/107237315)   
-
+[3] [Build reinforce learning congestion control controller for webrtc](https://github.com/OpenNetLab/gym)
