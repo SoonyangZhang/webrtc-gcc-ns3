@@ -1,7 +1,11 @@
 # webrtc-gcc-ns3
-test google congestion control algorithm on ns3.31  
+test google congestion control algorithm on ns3.31
+The ex-webrtc module depends on libwebrtc.a  
 ## Preparation 
-1 download webrtc m84.  
+There are three ways to get libwebtc.a  
+### The first approach  
+Download offcial webrtc. This approch is not suggested. ex-webrtc is referred the code under /webrtc/test/scenario. It is small discrete event simulator and only suports to build two nodes topology (webrtc/test/scenario/network_node.cc). I copy some source files in test and api under ex-webrtc. Once these files are changed by webrtc, building error will encountered.    
+1 download webrtc.  
 ```
 mkdir webrtc-checkout  
 cd webrtc-checkout  
@@ -56,16 +60,33 @@ class Call{
 }
 }  
 ```
-6  webrtc is built with clang. [Get clang installed first](https://www.jianshu.com/p/3c7eae5c0c68).   
-## Build webrtc  
-1 first step:    
+6  Built webrtc  with clang. [Get clang installed first](https://www.jianshu.com/p/3c7eae5c0c68).   
+- first step:    
+
 ```
+cd webrtc/src  
 gn gen out/m84 --args='is_debug=false is_component_build=false is_clang=true rtc_include_tests=false rtc_use_h264=true rtc_enable_protobuf=false use_rtti=true use_custom_libcxx=false treat_warnings_as_errors=false use_ozone=true'   
 ```
-2 second step:  
+- second step:  
+
 ```
+cd webrtc/src  
 ninja -C out/m84  
 ```
+### The second approach  
+Download the webrtc I upload. This approach to build libwertc.a is suggested for these intending to make some change in webrtc source code.    
+url: https://pan.baidu.com/s/18F26BAmZhj_CAQzKNUeDSA  
+auth code: j4ts  
+After download the code, decompress it:  
+```
+cat webrtc.tar.gz* |tar zx  
+```
+Built webrtc  with clang (refer to step 6 above).  
+### The third approach
+Download webrtc header and libwebrtc.a directly for fast prototype.  
+No bother is needed to build webrtc.  
+url: https://pan.baidu.com/s/1WAwxKjNg67deHrubYl1jFA  
+auth code: h21w  
 ## Build ns3.31
 1 Add environment variable   
 ```
@@ -113,13 +134,11 @@ CXX="clang++" ./waf configure
 ```
 ./waf run "scratch/webrtc-static --m=simu"  
 ```
-5 The code can work in simulation or emulation mode. In emulaiton mode (real clock):  
+5 Run the example in emulation mode (real clock):   
 ```
 ./waf run "scratch/webrtc-static --m=emu"  
 ```
 The code here is used by [gym](https://github.com/OpenNetLab/gym) to build reinforce learning based congestion controller.  
-## extra help
-If you cannot get the code sucessfully running, let me know and I will upload webrtc source code.    
 ## Results:  
 In simulation mode:  
 ![avatar](https://github.com/SoonyangZhang/webrtc-gcc-ns3/blob/main/results/gcc-simu-bw.png)  
