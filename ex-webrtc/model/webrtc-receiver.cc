@@ -3,11 +3,11 @@
 #include "rtc_base/net_helper.h"
 #include "api/test/network_emulation/network_emulation_interfaces.h"
 #include "webrtc-tag.h"
+#include "webrtc-trace.h"
 namespace ns3{
 NS_LOG_COMPONENT_DEFINE("WebrtcReceiver");
 namespace{
     const uint32_t kIpv4HeaderSize=20;
-    const int32_t kTraceInterval=25;
     constexpr char kDummyTransportName[] = "dummy";
 }
 WebrtcReceiver::WebrtcReceiver(WebrtcSessionManager *manager){
@@ -79,11 +79,6 @@ void WebrtcReceiver::StartApplication(){
 }
 void WebrtcReceiver::StopApplication(){
     m_running=false;
-    int64_t average=0;
-    if(m_owdSamples>0&&!m_traceOwdCb.IsNull()){
-        average=m_sumOwd/m_owdSamples;
-        m_traceOwdCb(0,(uint32_t)average);
-    }
 }
 void WebrtcReceiver::NotifyRouteChange(){
   rtc::NetworkRoute route;
@@ -131,25 +126,14 @@ void WebrtcReceiver::SendToNetwork(Ptr<Packet> p){
 void WebrtcReceiver::RecvPacket(Ptr<Socket> socket){
     Address remoteAddr;
     auto packet = socket->RecvFrom (remoteAddr);
+    uint32_t recv=packet->GetSize();
     uint32_t now=Simulator::Now().GetMilliSeconds();
     WebrtcTag tag;
     packet->RemovePacketTag (tag);
+    uint32_t sequence=tag.GetSequence();
     uint32_t owd=now-tag.GetTime();
-    m_sumOwd+=owd;
-    m_owdSamples++;
-    bool output=false;
-    if(m_OwdTraceTime==0){
-        output=true;
-        m_OwdTraceTime=now;
-    }else{
-        if(now-m_OwdTraceTime>=kTraceInterval){
-            output=true;
-            m_OwdTraceTime=now;
-            
-        }
-    }
-    if(output&&!m_traceOwdCb.IsNull()){
-        m_traceOwdCb(now,owd);
+    if (!m_traceReceiptPkt.IsNull()) {
+        m_traceReceiptPkt(now,sequence,owd);
     }
     if(!m_knowPeer){
         m_peerIp= InetSocketAddress::ConvertFrom (remoteAddr).GetIpv4 ();
@@ -158,8 +142,8 @@ void WebrtcReceiver::RecvPacket(Ptr<Socket> socket){
         m_knowPeer=true;
         NS_ASSERT(port==m_peerPort);
     }
-    if(!m_running){return;}
-    uint32_t recv=packet->GetSize();
+    if (!m_running) {return;}
+    UtilCalculator::Instance()->OnPacketInfo(now,recv);
     NS_ASSERT(recv<=1500);
     uint8_t buf[1500]={'\0'};
     packet->CopyData(buf,recv);

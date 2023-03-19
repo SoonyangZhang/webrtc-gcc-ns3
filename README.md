@@ -83,10 +83,9 @@ cat webrtc.tar.gz* |tar zx
 ```
 Built webrtc  with clang (refer to step 6 above).  
 ### The third approach
-Download webrtc header and libwebrtc.a directly for fast prototype.  
+I upload webrtc header and libwebrtc.a on github for fast prototype.  
 No bother is needed to build webrtc.  
-url: https://pan.baidu.com/s/1WAwxKjNg67deHrubYl1jFA  
-auth code: h21w  
+download it here: https://github.com/SoonyangZhang/webrtc-header-lib  
 ## Build ns3.31
 1 Add environment variable   
 ```
@@ -100,13 +99,7 @@ webrtc_code_path = os.environ['WEBRTC_SRC_DIR']
 webrtc_lib_path = os.path.join(webrtc_code_path, 'out', 'm84', 'obj')  
 webrtc_absl_path = os.path.join(webrtc_code_path, 'third_party', 'abseil-cpp')  
 ```
-2 Enable c++14 build flag (ns-allinone-3.31/ns-3.31/wscript).  
-```
-opt.add_option('--cxx-standard',
-               help=('Compile NS-3 with the given C++ standard'),
-               type='string', default='-std=c++14', dest='cxx_standard')  
-```
-3 Change the warning flags in ns3 (ns-allinone-3.31/ns-3.31/waf-tools/cflags.h).  
+2 Change the warning flags in ns3 (ns-allinone-3.31/ns-3.31/waf-tools/cflags.h).  
 ```
 self.warnings_flags = [['-Wall'], ['-Wno-unused-parameter'], ['-Wextra']]
 ```
@@ -116,7 +109,9 @@ The origin content can be seen [here](https://github.com/nsnam/ns-3-dev-git/blob
 ```
 cd ns-allinone-3.31/ns-3.31  
 source /etc/profile  
-CXX="clang++" ./waf configure  
+CXX="clang++"  
+CXXFLAGS="-std=c++14" 
+./waf configure  
 ./waf build  
 ```
 ## Run example:
@@ -125,18 +120,19 @@ CXX="clang++" ./waf configure
 ```
 cd ns-allinone-3.31/ns-3.31  
 source /etc/profile  
-CXX="clang++" ./waf configure  
+CXX="clang++"  
+./waf configure  
 ./waf build  
 
 ```
 3 Create a folder named traces under ns-allinone-3.31/ns-3.31/. The traced data can be found there.  
 4 Run the example in simulation mode (ns3 event time):
 ```
-./waf run "scratch/webrtc-static --m=simu"  
+./waf --run "scratch/webrtc-static --m=simu --it=1"  
 ```
 5 Run the example in emulation mode (real clock):   
 ```
-./waf run "scratch/webrtc-static --m=emu"  
+ ./waf --run "scratch/webrtc-static --m=emu --it=1"  
 ```
 The code here is used by [gym](https://github.com/OpenNetLab/gym) to build reinforce learning based congestion controller.  
 ## Results:  

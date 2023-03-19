@@ -15,9 +15,9 @@ class WebrtcReceiver:public webrtc::test::TransportBase,public Application{
 public:
     WebrtcReceiver(WebrtcSessionManager *manager);
     ~WebrtcReceiver() override;
-    typedef Callback<void,uint32_t,uint32_t> TraceOwd;
-    void SetOwdTraceFuc(TraceOwd cb){
-        m_traceOwdCb=cb;
+    typedef Callback<void,uint32_t,uint32_t,uint32_t> TraceReceiptPacketInfo;
+    void SetTraceReceiptPktInfo(TraceReceiptPacketInfo cb){
+        m_traceReceiptPkt=cb;
     }
     InetSocketAddress GetLocalAddress();
     void Bind(uint16_t port);
@@ -51,10 +51,7 @@ private:
     AtomicLock m_rtcpLock;
     std::deque<rtc::CopyOnWriteBuffer> m_rtcpQ;
     uint32_t m_context=0;
-    TraceOwd m_traceOwdCb;
+    TraceReceiptPacketInfo m_traceReceiptPkt;
     uint32_t m_packetOverhead{0};
-    uint32_t m_OwdTraceTime=0;
-    uint64_t m_sumOwd=0;
-    uint32_t m_owdSamples=0;
 };    
 }
