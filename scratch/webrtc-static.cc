@@ -243,7 +243,7 @@ static NodeContainer BuildP2PTopo(TriggerRandomLoss *trigger,
     address.SetBase (nodeip.c_str(), "255.255.255.0");
     address.Assign (devices);
     if(trigger){
-        trigger->RegisterDevice(devices.Get(0));
+        trigger->RegisterDevice(devices.Get(1));
     }
     if(changer){
         changer->RegisterDevice(devices.Get(0));
